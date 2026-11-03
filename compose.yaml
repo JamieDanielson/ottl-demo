@@ -1,0 +1,19 @@
+# Offline once images are pulled: `./demo pull` (or `./demo load-images` from backup/images.tar).
+name: ottl-demo
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.164.0
+    # Overriding `command` replaces the image's default --config, so always pass it.
+    command:
+      - --config=/cfg/${STAGE:-00-baseline}.yaml
+      - --feature-gates=ottl.functions.enableLambda
+    volumes:
+      - ./config:/cfg:ro
+    ports:
+      - "4318:4318"
+    depends_on: [jaeger]
+
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0   # in-memory storage; `./demo jaeger-reset` clears it
+    ports:
+      - "16686:16686"                    # UI: http://localhost:16686

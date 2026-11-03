@@ -1,0 +1,20 @@
+# Step 2a: normalize span names. Paste under `processors:` and add
+# transform/normalize to the pipeline AFTER filter/health.
+
+# A first try. `./demo apply` fails validation:
+#   unable to infer context from statements ... path's first segment must be a valid context name
+# The statement has no path, so the processor can't tell which context it runs in.
+  transform/normalize:
+    trace_statements:
+      - 'set_semconv_span_name("1.43.0")'
+
+# The fix: name the context for the group.
+  transform/normalize:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - 'set_semconv_span_name("1.43.0")'
+
+# Pipeline line:
+      processors: [filter/health, transform/normalize]

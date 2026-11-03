@@ -1,0 +1,4 @@
+# Not part of the staged walkthrough. Verified on 0.164.0 with
+# --feature-gates=ottl.functions.enableLambda (compose.yaml already passes it).
+# Masks the value of every attribute whose KEY looks like an email field, keeping the key.
+set(span.attributes, MapEach(span.attributes, (k, v) => When(() => IsMatch(k, "(?i)email"), "<redacted>", v)))

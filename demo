@@ -1,0 +1,91 @@
+#!/bin/sh
+# Demo commands. The running Collector always uses config/live.yaml:
+# edit it live and `./demo apply`, or jump to a known-good stage with `./demo stage <name>`.
+set -eu
+cd "$(dirname "$0")"
+
+# compose.yaml is the one place the image versions are pinned.
+image() {
+  docker compose config --format json \
+    | python3 -c 'import json, sys; print(json.load(sys.stdin)["services"][sys.argv[1]]["image"])' "$1"
+}
+GATES=--feature-gates=ottl.functions.enableLambda
+mkdir -p out
+
+since_last() { cat out/.last-send 2>/dev/null || echo 10m; }
+
+check() {
+  dir=$(cd "$(dirname "$1")" && pwd)
+  docker run --rm -v "$dir:/cfg:ro" "$(image collector)" validate --config="/cfg/$(basename "$1")" "$GATES" \
+    && echo "✔ $1 is valid"
+}
+
+apply() {
+  check config/live.yaml
+  if ! STAGE=live docker compose up -d --force-recreate --wait collector >/dev/null 2>&1; then
+    docker compose logs --no-log-prefix --tail 20 collector
+    exit 1
+  fi
+  sleep 1
+  echo "Collector running config/live.yaml (from: $(cat out/.stage 2>/dev/null || echo edited))"
+}
+
+cmd=${1:-help}
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  stage)          # ./demo stage 01-filter : copy config/<name>.yaml to live.yaml and apply
+    s=${1:?usage: ./demo stage <name>, e.g. 01-filter}
+    s=${s%.yaml}; s=${s#config/}
+    [ -f "config/$s.yaml" ] || { echo "no such stage: config/$s.yaml"; ls config; exit 1; }
+    cp "config/$s.yaml" config/live.yaml
+    echo "$s" > out/.stage
+    apply ;;
+  apply)          # validate config/live.yaml, then restart the Collector with it
+    echo "edited" > out/.stage
+    apply ;;
+  check)          # ./demo check [file] : validate one config (default live.yaml)
+    check "${1:-config/live.yaml}" ;;
+  validate)       # validate every config in config/
+    for f in config/*.yaml; do check "$f"; done ;;
+  send)           # ./demo send [fixture ...] : post scenes (default all four) and show output
+    bin/send "$@" ;;
+  checkout)       # ./demo checkout : post only the checkout trace, show only that trace
+    SPANS_ARGS="--only checkout" bin/send data/3-checkout.json ;;
+  assistant)      # ./demo assistant : post only the AI assistant trace
+    bin/send data/4-assistant.json ;;
+  show)           # ./demo show [-n] [--only REGEX] : re-render the last send
+    docker compose logs --no-log-prefix --since "$(since_last)" collector | bin/spans "$@" ;;
+  names)          # ./demo names : last send, span names only
+    docker compose logs --no-log-prefix --since "$(since_last)" collector | bin/spans -n "$@" ;;
+  raw)            # the raw debug exporter output from the last send
+    docker compose logs --no-log-prefix --since "$(since_last)" collector ;;
+  logs)           # recent Collector logs (startup errors, warnings)
+    docker compose logs --no-log-prefix --tail 40 collector ;;
+  diff)           # ./demo diff 02b-transform : what changes from live.yaml to that stage
+    s=${1:?usage: ./demo diff <stage>}; s=${s%.yaml}; s=${s#config/}
+    diff -u config/live.yaml "config/$s.yaml" || true ;;
+  jaeger)         # open the assistant trace in Jaeger (fixture trace IDs are fixed)
+    url=http://localhost:16686/trace/bb7e48e6136cd9680f921bfb8c26885b
+    open "$url" 2>/dev/null || echo "$url" ;;
+  jaeger-reset)   # empty Jaeger (in-memory); resending the same fixtures duplicates spans there
+    docker compose restart jaeger >/dev/null 2>&1 && echo "Jaeger emptied" ;;
+  test)           # self-test: run every stage and assert the expected output
+    bin/selftest ;;
+  reset)          # stop everything and clear state (Jaeger is in-memory)
+    docker rm -f ottl-replay >/dev/null 2>&1 || true
+    docker compose down -v --remove-orphans
+    rm -f config/live.yaml out/.stage out/.last-send ;;
+  pull)           # pull the pinned images (needs network)
+    docker pull "$(image collector)"; docker pull "$(image jaeger)" ;;
+  save-images)    # write backup/images.tar for offline use
+    docker save -o backup/images.tar "$(image collector)" "$(image jaeger)" && ls -lh backup/images.tar ;;
+  load-images)    # load images from backup/images.tar
+    docker load -i backup/images.tar ;;
+  fixtures)       # regenerate data/*.json and the replay files with fresh timestamps
+    python3 data/make_fixtures.py && python3 backup/replay/make_replay.py ;;
+  replay)         # backup path with no host networking: ./demo replay 02b-transform
+    backup/replay/run "${1:-00-baseline}" ;;
+  help|*)
+    echo "usage: ./demo <command>"
+    grep -E '^  [a-z-]+\)' "$0" | sed -E 's/^  ([a-z|-]+)\) *# */  \1\t/' | column -t -s "$(printf '\t')" ;;
+esac

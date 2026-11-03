@@ -1,0 +1,24 @@
+#!/bin/sh
+# Backup path: replays the fixtures from files inside the container, so it needs no
+# host-to-container networking and no curl. Usage: backup/replay/run 02b-transform
+set -eu
+cd "$(dirname "$0")"
+s=${1:-00-baseline}; s=${s%.yaml}
+[ $# -gt 0 ] && shift
+[ -f "config/$s.yaml" ] || { echo "no such stage: $s"; ls config; exit 1; }
+# Jaeger is the 03* stages' export target, and starting it creates the Compose
+# network that the replay container joins.
+docker compose -f ../../compose.yaml up -d --wait jaeger >/dev/null 2>&1 \
+  || { echo "Jaeger did not start. See: docker compose logs jaeger" >&2; exit 1; }
+image=$(docker compose -f ../../compose.yaml config --format json \
+  | python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["collector"]["image"])')
+docker compose -f ../../compose.yaml stop collector >/dev/null 2>&1 || true
+docker rm -f ottl-replay >/dev/null 2>&1 || true
+docker run -d --name ottl-replay --network ottl-demo_default \
+  -v "$PWD/config:/cfg:ro" -v "$PWD/data:/data:ro" \
+  "$image" \
+  --config="/cfg/$s.yaml" --feature-gates=ottl.functions.enableLambda >/dev/null
+sleep 3
+docker logs ottl-replay 2>&1 | ../../bin/spans "$@"
+echo "(replay container: ottl-replay. Stop it with: docker rm -f ottl-replay)"
+echo "(the Compose Collector is stopped: ./demo stage <name> starts it again)"

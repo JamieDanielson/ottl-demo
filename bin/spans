@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""Condenses the debug exporter's output into a projector-friendly span list.
+
+Reads Collector logs on stdin (detailed or basic verbosity) and prints, per debug
+exporter, one line per span with its service, name and status, followed by its
+attributes and span events. Leaked-looking values are shown in red and redacted
+ones in green. A span whose parent is not in the same exporter's output is flagged,
+because that is what a dropped or rerouted parent looks like downstream.
+
+Usage: docker compose logs --no-log-prefix collector | bin/spans [-n] [--only REGEX]
+  -n, --names     names only, no attributes
+  --only REGEX    show only traces with a span whose service or name matches REGEX
+"""
+import argparse
+import json
+import os
+import re
+import sys
+
+HEADER = re.compile(r"\tinfo\tTraces\t(\{.*\})\s*$")
+FIELD = re.compile(r"^ {4}(Trace ID|Parent ID|ID|Name|Kind|Status code|Status message)\s*: ?(.*)$")
+ATTR = re.compile(r"^ {5}-> ([^:]+): (.*)$")
+EVENT_ATTR = re.compile(r"^ {10}-> ([^:]+): (.*)$")
+TYPED = re.compile(r"^(Str|Int|Double|Bool|Slice|Map|Bytes|Empty)\((.*)\)$", re.S)
+
+LEAK = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+|\b(?:\d[ -]?){13,16}\b|Bearer \S+|token=(?!REDACTED)[^&\s]+")
+SAFE = re.compile(r"REDACTED|\*{4}|<email>|<redacted>")
+
+def color_enabled():
+    return os.environ.get("FORCE_COLOR") or (sys.stdout.isatty() and not os.environ.get("NO_COLOR"))
+
+C = {"red": "31", "green": "32", "yellow": "33", "dim": "2", "bold": "1", "cyan": "36"}
+
+def paint(text, *styles):
+    if not color_enabled() or not styles:
+        return text
+    return "".join(f"\033[{C[s]}m" for s in styles) + text + "\033[0m"
+
+def plain(raw):
+    m = TYPED.match(raw.strip())
+    return m.group(2) if m else raw.strip()
+
+def parse(lines):
+    """Returns {exporter: {"count": int, "spans": [span, ...]}} in first-seen order.
+
+    Each exporter batch is two log entries: a one-line "Traces" summary with the span
+    count, then (at normal/detailed verbosity) a multi-line dump whose last line is
+    the entry's fields, including the exporter ID. Exporters in parallel pipelines log
+    concurrently, so a dump is attributed by its own trailing fields line, never by
+    the most recent summary.
+    """
+    out = {}
+    pending, resource, span, event, mode = None, {}, None, None, None
+    for line in lines:
+        line = line.rstrip("\n")
+        h = HEADER.search(line)
+        if h:
+            try:
+                meta = json.loads(h.group(1))
+            except json.JSONDecodeError:
+                continue
+            group = out.setdefault(meta.get("otelcol.component.id", "debug"), {"count": 0, "spans": []})
+            group["count"] += int(meta.get("spans", 0))
+            continue
+        if "\tinfo\tResourceSpans #0" in line:
+            pending = []
+        if pending is None:
+            continue
+        if line.startswith("\t{"):
+            try:
+                exporter = json.loads(line.strip()).get("otelcol.component.id", "debug")
+            except json.JSONDecodeError:
+                exporter = "debug"
+            out.setdefault(exporter, {"count": 0, "spans": []})["spans"].extend(pending)
+            pending, span, mode = None, None, None
+            continue
+        if "ResourceSpans #" in line:
+            resource, span, mode = {}, None, "resource"
+            continue
+        if line.startswith("ScopeSpans #"):
+            mode = None
+            continue
+        if line.startswith("Span #"):
+            span = {"service": resource.get("service.name", "?"), "attrs": [], "events": []}
+            pending.append(span)
+            mode = "span"
+            continue
+        if line.startswith("Attributes:") and span is not None:
+            mode = "attrs"
+            continue
+        if line.startswith("SpanEvent #") and span is not None:
+            event = {"name": "", "attrs": []}
+            span["events"].append(event)
+            mode = "event"
+            continue
+        if line.startswith(("Links:", "SpanLink #")):
+            mode = None
+            continue
+        f = FIELD.match(line)
+        if f and span is not None:
+            span[f.group(1)] = f.group(2).strip()
+            continue
+        if mode == "resource":
+            a = ATTR.match(line)
+            if a:
+                resource[a.group(1)] = plain(a.group(2))
+        elif mode == "attrs":
+            a = ATTR.match(line)
+            if a:
+                span["attrs"].append((a.group(1), plain(a.group(2))))
+        elif mode == "event":
+            e = EVENT_ATTR.match(line)
+            a = ATTR.match(line)
+            if e:
+                event["attrs"].append((e.group(1), plain(e.group(2))))
+            elif a and a.group(1) == "Name":
+                event["name"] = plain(a.group(2))
+    return out
+
+def show_value(key, value):
+    if LEAK.search(value):
+        return paint(value, "red", "bold")
+    if SAFE.search(value) or key.endswith(".hash"):
+        return paint(value, "green")
+    return value
+
+def render(groups, names_only, only):
+    if not groups:
+        print(paint("(no telemetry reached a debug exporter in this window)", "yellow"))
+        return
+    traces = None
+    if only:
+        pick = re.compile(only)
+        traces = {
+            s.get("Trace ID")
+            for g in groups.values()
+            for s in g["spans"]
+            if pick.search(s["service"]) or pick.search(s.get("Name", ""))
+        }
+    for exporter, group in sorted(groups.items()):
+        spans = group["spans"]
+        detail = "" if spans or not group["count"] else "  (basic verbosity: counts only)"
+        print(paint(f"── {exporter} · {group['count']} spans{detail} ", "cyan", "bold") + paint("─" * 20, "cyan"))
+        ids = {s.get("ID") for s in spans}
+        width = max((len(s["service"]) for s in spans), default=0)
+        for s in spans:
+            if traces is not None and s.get("Trace ID") not in traces:
+                continue
+            flags = []
+            if s.get("Status code") == "Error":
+                flags.append(paint("✖ Error", "red", "bold"))
+            parent = s.get("Parent ID", "")
+            if parent and parent not in ids:
+                flags.append(paint("⚠ parent not here", "yellow", "bold"))
+            print(f"{paint(s['service'].ljust(width), 'dim')}  {paint(s.get('Name', '?'), 'bold')}  {'  '.join(flags)}".rstrip())
+            if names_only:
+                continue
+            for k, v in s["attrs"]:
+                print(f"{' ' * (width + 4)}{k} = {show_value(k, v)}")
+            for e in s["events"]:
+                print(f"{' ' * (width + 4)}{paint('event: ' + e['name'], 'yellow')}")
+                for k, v in e["attrs"]:
+                    print(f"{' ' * (width + 6)}{k} = {show_value(k, v)}")
+        print()
+
+def main():
+    ap = argparse.ArgumentParser(add_help=True)
+    ap.add_argument("-n", "--names", action="store_true")
+    ap.add_argument("--only")
+    args = ap.parse_args()
+    render(parse(sys.stdin), args.names, args.only)
+
+if __name__ == "__main__":
+    main()

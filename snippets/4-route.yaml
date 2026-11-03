@@ -1,0 +1,22 @@
+# Step 3: route AI spans. This is a lot of YAML, so run `./demo diff 03a-route-first-try`
+# to see the change, then `./demo stage 03a-route-first-try`. Once `./demo jaeger` shows
+# the hole in the assistant trace, add the one `action: copy` line below
+# (== config/03b-route.yaml) and `./demo apply`.
+connectors:
+  routing:
+    error_mode: ignore
+    default_pipelines: [traces/default]
+    table:
+      - condition: span.attributes["gen_ai.operation.name"] != nil
+        action: copy              # AI spans ALSO stay in the default route, so traces stay whole
+        pipelines: [traces/ai]
+
+# Only on the default (Jaeger) pipeline, after the routing connector:
+  transform/strip-prompts:
+    error_mode: ignore
+    trace_statements:
+      - 'delete_matching_keys(span.attributes, "^gen_ai\\.(input|output)\\.messages$$")'
+
+# Why: with the default `action: move`, the AI spans leave the default route
+# and Jaeger gets a trace with a hole in the middle. Span conditions route spans, not
+# traces. `copy` sends them to both.

@@ -1,0 +1,20 @@
+#!/bin/sh
+# Posts OTLP/JSON fixtures to the Collector, then shows what reached the debug exporters.
+# Usage: bin/send [fixture.json ...]   (default: all four scenes)
+set -eu
+cd "$(dirname "$0")/.."
+endpoint=${OTLP_ENDPOINT:-http://localhost:4318}
+mkdir -p out
+wait=${WAIT:-1}
+since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+echo "$since" > out/.last-send
+[ $# -gt 0 ] || set -- data/1-health.json data/2-browse.json data/3-checkout.json data/4-assistant.json
+for f in "$@"; do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+    --data-binary @"$f" "$endpoint/v1/traces" || true)
+  echo "POST $f -> ${code:-no response}"
+  case "$code" in 2*) ;; *) echo "Collector not accepting data. Try: ./demo logs" >&2; exit 1 ;; esac
+done
+sleep "$wait"
+echo
+docker compose logs --no-log-prefix --since "$since" collector | bin/spans ${SPANS_ARGS:-}

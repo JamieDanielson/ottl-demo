@@ -1,0 +1,16 @@
+# Stage 0: no processing. Shows the raw telemetry exactly as the apps send it.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318   # in a container, localhost is unreachable from the host
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]

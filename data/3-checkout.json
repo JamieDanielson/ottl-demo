@@ -1,0 +1,329 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "frontend"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "telescope-shop",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "b1a79ef3a5bc06d1b4aad0c7c746356d",
+              "spanId": "a01eaf76c385b44e",
+              "name": "POST /api/checkout",
+              "kind": 2,
+              "startTimeUnixNano": "1793745195637868000",
+              "endTimeUnixNano": "1793745195817868000",
+              "attributes": [
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "POST"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/api/checkout"
+                  }
+                },
+                {
+                  "key": "url.query",
+                  "value": {
+                    "stringValue": "token=abc123&session=s-9981"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/api/checkout"
+                  }
+                },
+                {
+                  "key": "http.request.header.authorization",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "stringValue": "Bearer FAKE-TOKEN-123"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "user.email",
+                  "value": {
+                    "stringValue": "jane.doe@example.com"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "u-7781"
+                  }
+                },
+                {
+                  "key": "user_agent.original",
+                  "value": {
+                    "stringValue": "Mozilla/5.0"
+                  }
+                },
+                {
+                  "key": "client.address",
+                  "value": {
+                    "stringValue": "203.0.113.42"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "500"
+                  }
+                }
+              ],
+              "status": {
+                "code": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "checkout"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "telescope-shop",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "b1a79ef3a5bc06d1b4aad0c7c746356d",
+              "spanId": "26b7e31e247d9985",
+              "name": "oteldemo.CheckoutService/PlaceOrder",
+              "kind": 2,
+              "startTimeUnixNano": "1793745195642868000",
+              "endTimeUnixNano": "1793745195812868000",
+              "attributes": [
+                {
+                  "key": "rpc.system.name",
+                  "value": {
+                    "stringValue": "grpc"
+                  }
+                },
+                {
+                  "key": "rpc.method",
+                  "value": {
+                    "stringValue": "oteldemo.CheckoutService/PlaceOrder"
+                  }
+                },
+                {
+                  "key": "app.customer.email",
+                  "value": {
+                    "stringValue": "jane.doe@example.com"
+                  }
+                },
+                {
+                  "key": "app.order.items.count",
+                  "value": {
+                    "intValue": "2"
+                  }
+                }
+              ],
+              "status": {
+                "code": 2,
+                "message": "payment failed"
+              },
+              "parentSpanId": "a01eaf76c385b44e"
+            },
+            {
+              "traceId": "b1a79ef3a5bc06d1b4aad0c7c746356d",
+              "spanId": "a50ef75d589f0983",
+              "name": "oteldemo.CartService/GetCart",
+              "kind": 3,
+              "startTimeUnixNano": "1793745195647868000",
+              "endTimeUnixNano": "1793745195662868000",
+              "attributes": [
+                {
+                  "key": "rpc.system.name",
+                  "value": {
+                    "stringValue": "grpc"
+                  }
+                },
+                {
+                  "key": "rpc.method",
+                  "value": {
+                    "stringValue": "oteldemo.CartService/GetCart"
+                  }
+                },
+                {
+                  "key": "user.id",
+                  "value": {
+                    "stringValue": "u-7781"
+                  }
+                }
+              ],
+              "status": {
+                "code": 0
+              },
+              "parentSpanId": "26b7e31e247d9985"
+            },
+            {
+              "traceId": "b1a79ef3a5bc06d1b4aad0c7c746356d",
+              "spanId": "a3a9c331f99eff87",
+              "name": "oteldemo.ShippingService/GetQuote",
+              "kind": 3,
+              "startTimeUnixNano": "1793745195667868000",
+              "endTimeUnixNano": "1793745195687868000",
+              "attributes": [
+                {
+                  "key": "rpc.system.name",
+                  "value": {
+                    "stringValue": "grpc"
+                  }
+                },
+                {
+                  "key": "rpc.method",
+                  "value": {
+                    "stringValue": "oteldemo.ShippingService/GetQuote"
+                  }
+                }
+              ],
+              "status": {
+                "code": 0
+              },
+              "parentSpanId": "26b7e31e247d9985"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "payment"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "telescope-shop",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "b1a79ef3a5bc06d1b4aad0c7c746356d",
+              "spanId": "8e180b981905ae8e",
+              "name": "oteldemo.PaymentService/Charge",
+              "kind": 2,
+              "startTimeUnixNano": "1793745195697868000",
+              "endTimeUnixNano": "1793745195797868000",
+              "attributes": [
+                {
+                  "key": "rpc.system.name",
+                  "value": {
+                    "stringValue": "grpc"
+                  }
+                },
+                {
+                  "key": "rpc.method",
+                  "value": {
+                    "stringValue": "oteldemo.PaymentService/Charge"
+                  }
+                },
+                {
+                  "key": "app.payment.card_type",
+                  "value": {
+                    "stringValue": "visa"
+                  }
+                },
+                {
+                  "key": "app.payment.card_number",
+                  "value": {
+                    "stringValue": "4111 1111 1111 1111"
+                  }
+                },
+                {
+                  "key": "app.payment.amount",
+                  "value": {
+                    "doubleValue": 79.99
+                  }
+                }
+              ],
+              "status": {
+                "code": 2,
+                "message": "card declined"
+              },
+              "parentSpanId": "26b7e31e247d9985",
+              "events": [
+                {
+                  "timeUnixNano": "1793745195797868000",
+                  "name": "exception",
+                  "attributes": [
+                    {
+                      "key": "exception.type",
+                      "value": {
+                        "stringValue": "CardDeclinedError"
+                      }
+                    },
+                    {
+                      "key": "exception.message",
+                      "value": {
+                        "stringValue": "Card 4111 1111 1111 1111 declined for jane.doe@example.com"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Step 2b: redact. Paste under `processors:` and add transform/redact to the
+# pipeline after transform/normalize.
+
+# A first try (== config/02a-transform-first-try.yaml). It validates and runs, but the
+# checkout span keeps its email and token while the payment span is masked. Why?
+# The flat list mixes span.* and spanevent.* paths, so the WHOLE list is inferred as
+# the spanevent context and runs once per span event. Spans with no events are skipped.
+  transform/redact:
+    error_mode: ignore
+    trace_statements:
+      - 'delete_matching_keys(span.attributes, "(?i).*(authorization|cookie|token|password|secret)$$")'
+      - 'set(span.attributes["user.hash"], SHA256(span.attributes["user.email"])) where span.attributes["user.email"] != nil'
+      - 'delete_key(span.attributes, "user.email")'
+      - 'replace_all_patterns(span.attributes, "value", "\\b(?:\\d[ -]?){12}(\\d{4})\\b", "**** **** **** $$1")'
+      - 'replace_all_patterns(span.attributes, "value", "[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "<email>")'
+      - 'replace_pattern(span.attributes["url.query"], "=[^&]*", "=REDACTED")'
+      - 'replace_all_patterns(spanevent.attributes, "value", "\\b(?:\\d[ -]?){12}(\\d{4})\\b", "**** **** **** $$1")'
+      - 'replace_all_patterns(spanevent.attributes, "value", "[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "<email>")'
+
+# The fix (== config/02b-transform.yaml): one group per context. Add `- statements:`
+# above the first statement and above the first spanevent statement, and indent.
+  transform/redact:
+    error_mode: ignore
+    trace_statements:
+      - statements:
+          - 'delete_matching_keys(span.attributes, "(?i).*(authorization|cookie|token|password|secret)$$")'
+          - 'set(span.attributes["user.hash"], SHA256(span.attributes["user.email"])) where span.attributes["user.email"] != nil'
+          - 'delete_key(span.attributes, "user.email")'
+          - 'replace_all_patterns(span.attributes, "value", "\\b(?:\\d[ -]?){12}(\\d{4})\\b", "**** **** **** $$1")'
+          - 'replace_all_patterns(span.attributes, "value", "[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "<email>")'
+          - 'replace_pattern(span.attributes["url.query"], "=[^&]*", "=REDACTED")'
+      - statements:
+          - 'replace_all_patterns(spanevent.attributes, "value", "\\b(?:\\d[ -]?){12}(\\d{4})\\b", "**** **** **** $$1")'
+          - 'replace_all_patterns(spanevent.attributes, "value", "[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "<email>")'
+
+# Pipeline line:
+      processors: [filter/health, transform/normalize, transform/redact]
+
+# Why `$$`: change $$1 to ${1} and `./demo check` fails with
+#   environment variable "1" has invalid name
+# because the Collector expands ${...} before OTTL ever sees the string.

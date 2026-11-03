@@ -1,0 +1,204 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "frontend"
+            }
+          },
+          {
+            "key": "deployment.environment.name",
+            "value": {
+              "stringValue": "demo"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "telescope-shop",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "67b3525897e2c81a9f9a5439ad951788",
+              "spanId": "824463032d43bed3",
+              "name": "GET /api/products/OLJCESPC7Z",
+              "kind": 2,
+              "startTimeUnixNano": "1793745195637868000",
+              "endTimeUnixNano": "1793745195649868000",
+              "attributes": [
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/api/products/OLJCESPC7Z"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/api/products/{productId}"
+                  }
+                },
+                {
+                  "key": "user_agent.original",
+                  "value": {
+                    "stringValue": "Mozilla/5.0"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "200"
+                  }
+                }
+              ],
+              "status": {
+                "code": 0
+              }
+            },
+            {
+              "traceId": "fb4db3306cc7b166bcdbbd8c1f32506a",
+              "spanId": "86934fbb34620e23",
+              "name": "GET /api/products/66VCHSJNUP",
+              "kind": 2,
+              "startTimeUnixNano": "1793745196037868000",
+              "endTimeUnixNano": "1793745196049868000",
+              "attributes": [
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/api/products/66VCHSJNUP"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/api/products/{productId}"
+                  }
+                },
+                {
+                  "key": "user_agent.original",
+                  "value": {
+                    "stringValue": "Mozilla/5.0"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "200"
+                  }
+                }
+              ],
+              "status": {
+                "code": 0
+              }
+            },
+            {
+              "traceId": "9618410375551e546696ee90457aca2b",
+              "spanId": "2f342fc1637b9ad8",
+              "name": "GET /api/products/L9ECAV7KIM",
+              "kind": 2,
+              "startTimeUnixNano": "1793745196437868000",
+              "endTimeUnixNano": "1793745196449868000",
+              "attributes": [
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/api/products/L9ECAV7KIM"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/api/products/{productId}"
+                  }
+                },
+                {
+                  "key": "user_agent.original",
+                  "value": {
+                    "stringValue": "Mozilla/5.0"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "200"
+                  }
+                }
+              ],
+              "status": {
+                "code": 0
+              }
+            },
+            {
+              "traceId": "def53e95f1fc7a2aa7dbc4685f282f1e",
+              "spanId": "90b93ce7a6189971",
+              "name": "GET /blog/healthy-stargazing",
+              "kind": 2,
+              "startTimeUnixNano": "1793745197137868000",
+              "endTimeUnixNano": "1793745197157868000",
+              "attributes": [
+                {
+                  "key": "http.request.method",
+                  "value": {
+                    "stringValue": "GET"
+                  }
+                },
+                {
+                  "key": "url.path",
+                  "value": {
+                    "stringValue": "/blog/healthy-stargazing"
+                  }
+                },
+                {
+                  "key": "http.route",
+                  "value": {
+                    "stringValue": "/blog/{slug}"
+                  }
+                },
+                {
+                  "key": "user_agent.original",
+                  "value": {
+                    "stringValue": "Mozilla/5.0"
+                  }
+                },
+                {
+                  "key": "http.response.status_code",
+                  "value": {
+                    "intValue": "200"
+                  }
+                }
+              ],
+              "status": {
+                "code": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# Step 1: filter. Starting from 00-baseline, paste this under `processors:` in
+# config/live.yaml and add `processors: [filter/health]` to the traces pipeline.
+
+# 1a. A first try, deliberately unanchored. After `./demo apply` and `./demo send`,
+#     /blog/healthy-stargazing is gone too, because its path contains "health".
+processors:
+  filter/health:
+    error_mode: ignore
+    trace_conditions:          # a span is dropped when ANY condition is true
+      - 'IsMatch(span.attributes["url.path"], "health")'
+      - 'IsMatch(span.attributes["user_agent.original"], "^kube-probe/")'
+
+# 1b. The fix: anchor the first condition (== config/01-filter.yaml).
+      - 'IsMatch(span.attributes["url.path"], "^/(healthz?|readyz|livez)$$")'
+
+# Pipeline line:
+      processors: [filter/health]

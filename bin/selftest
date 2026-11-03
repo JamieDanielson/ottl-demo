@@ -1,0 +1,89 @@
+#!/bin/sh
+# Runs every stage against the fixtures and asserts the output the talk relies on.
+# Captured output goes to backup/captured/<stage>.txt.
+# Leaves the Collector on 00-baseline.
+cd "$(dirname "$0")/.."
+export NO_COLOR=1
+fails=0
+out=backup/captured
+mkdir -p "$out"
+
+pass() { echo "  ✔ $1"; }
+fail() { echo "  ✖ $1"; fails=$((fails + 1)); }
+has()     { grep -qE -- "$2" "$out/$1.txt" && pass "$3" || fail "$3"; }
+hasnt()   { grep -qE -- "$2" "$out/$1.txt" && fail "$3" || pass "$3"; }
+count()   { n=$(grep -cE -- "$2" "$out/$1.txt"); [ "$n" -eq "$3" ] && pass "$4 ($n)" || fail "$4 (expected $3, got $n)"; }
+# Span count of the first trace in a Jaeger API response on stdin; 0 if Jaeger had no answer.
+jaeger_spans() { python3 -c 'import json, sys; d = json.load(sys.stdin).get("data") or [{}]; print(len(d[0].get("spans") or []))' 2>/dev/null || echo 0; }
+
+run() {
+  echo "== $1"
+  ./demo stage "$1" >/dev/null || { fail "stage $1 failed to start"; return 1; }
+  bin/send > "$out/$1.txt" 2>&1 || fail "send failed"
+}
+
+echo "== validate"
+for f in config/[0-9]*.yaml; do
+  ./demo check "$f" >/dev/null 2>&1 && pass "$f" || fail "$f does not validate"
+done
+
+run 00-baseline
+has 00-baseline '── debug · 23 spans' "23 spans arrive"
+has 00-baseline 'user.email = jane.doe@example.com' "email leaks"
+has 00-baseline 'app.payment.card_number = 4111 1111 1111 1111' "card number leaks"
+has 00-baseline 'gen_ai.input.messages = .*jane.doe@example.com' "email leaks inside the AI prompt"
+count 00-baseline '  GET /(healthz|readyz)$' 7 "probe spans present"
+
+run 01-filter
+has 01-filter '── debug · 16 spans' "16 spans survive"
+count 01-filter '  GET /(healthz|readyz)$' 0 "probe spans dropped"
+has 01-filter 'GET /blog/healthy-stargazing' "blog post survives the anchored regex"
+count 01-filter 'SELECT  ⚠ parent not here' 3 "readiness DB spans are orphaned"
+
+run 02a-transform-first-try
+has 02a-transform-first-try 'GET /api/products/\{productId\}' "span names normalized"
+has 02a-transform-first-try 'user.email = jane.doe@example.com' "GOTCHA: checkout span (no events) still leaks email"
+has 02a-transform-first-try 'http.request.header.authorization' "GOTCHA: token still present"
+has 02a-transform-first-try 'app.payment.card_number = \*\*\*\* \*\*\*\* \*\*\*\* 1111' "payment span (has an event) is masked"
+
+run 02b-transform
+hasnt 02b-transform 'jane.doe@example.com' "no email anywhere, including the AI prompt"
+hasnt 02b-transform '4111 1111 1111 1111' "no full card number anywhere"
+hasnt 02b-transform 'authorization|Bearer|abc123' "no token anywhere"
+has 02b-transform 'gen_ai.usage.input_tokens = 412' "anchored key pattern keeps token counts"
+has 02b-transform 'user.hash = [0-9a-f]{64}$' "user.hash is 64 hex chars"
+has 02b-transform 'url.query = token=REDACTED&session=REDACTED' "query values redacted"
+has 02b-transform 'app.customer.email = <email>' "second team's email key caught by value pattern"
+has 02b-transform 'exception.message = Card \*\*\*\* \*\*\*\* \*\*\*\* 1111 declined for <email>' "span event text scrubbed"
+has 02b-transform 'Email the list to <email>' "prompt text scrubbed"
+
+./demo jaeger-reset >/dev/null; sleep 2
+run 03a-route-first-try
+has 03a-route-first-try '── debug/default · 14 spans' "move: gen_ai spans leave the default route"
+sleep 2
+n=$(curl -s http://localhost:16686/api/traces/bb7e48e6136cd9680f921bfb8c26885b | jaeger_spans)
+[ "$n" -eq 2 ] && pass "GOTCHA: Jaeger gets the assistant trace with a hole (2 of 4 spans)" || fail "Jaeger hole (expected 2, got $n)"
+
+./demo jaeger-reset >/dev/null; sleep 2
+run 03b-route
+has 03b-route '── debug/default · 16 spans' "copy: default route still gets every span"
+has 03b-route '── debug/my-ai-backend · 2 spans' "AI backend gets the 2 gen_ai spans"
+has 03b-route 'chat stargazer-1  ⚠ parent not here' "AI backend alone sees a partial trace"
+has 03b-route 'gen_ai.input.messages = .*<email>' "AI backend keeps the (scrubbed) prompt"
+sleep 2
+# Look up by the fixtures' fixed trace IDs, so the check doesn't depend on fixture timestamps.
+assistant=$(curl -s http://localhost:16686/api/traces/bb7e48e6136cd9680f921bfb8c26885b)
+checkout=$(curl -s http://localhost:16686/api/traces/b1a79ef3a5bc06d1b4aad0c7c746356d)
+n=$(echo "$assistant" | jaeger_spans)
+[ "$n" -eq 4 ] && pass "Jaeger has the whole assistant trace (4 spans)" || fail "Jaeger has the whole assistant trace (got $n)"
+echo "$assistant" | grep -q 'gen_ai.input.messages\|gen_ai.output.messages' && fail "prompts reached Jaeger" || pass "prompt bodies stripped before Jaeger"
+echo "$assistant" | grep -q 'gen_ai.usage.input_tokens' && pass "token counts reach Jaeger" || fail "token counts reach Jaeger"
+n=$(echo "$checkout" | jaeger_spans)
+[ "$n" -eq 5 ] && pass "Jaeger has the whole checkout trace (5 spans)" || fail "Jaeger has the whole checkout trace (got $n)"
+echo "$checkout$assistant" | grep -q '4111 1111 1111 1111\|jane.doe' && fail "Jaeger received unredacted data" || pass "Jaeger has no leaked values"
+
+echo "== reset to 00-baseline"
+./demo stage 00-baseline >/dev/null && pass "collector on 00-baseline"
+
+echo
+if [ "$fails" -eq 0 ]; then echo "ALL CHECKS PASSED"; else echo "$fails CHECK(S) FAILED"; exit 1; fi
