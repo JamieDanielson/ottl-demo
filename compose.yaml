@@ -6,14 +6,14 @@ services:
     # Overriding `command` replaces the image's default --config, so always pass it.
     command:
       - --config=/cfg/${STAGE:-00-baseline}.yaml
-      - --feature-gates=ottl.functions.enableLambda
+      - --feature-gates=ottl.functions.enableLambda   # alpha; only snippets/5-lambda.txt needs it
     volumes:
       - ./config:/cfg:ro
     ports:
-      - "4318:4318"
+      - "127.0.0.1:4318:4318"              # localhost only, so the network can't reach it
     depends_on: [jaeger]
 
   jaeger:
     image: jaegertracing/jaeger:2.22.0   # in-memory storage; `./demo jaeger-reset` clears it
     ports:
-      - "16686:16686"                    # UI: http://localhost:16686
+      - "127.0.0.1:16686:16686"          # UI: http://localhost:16686

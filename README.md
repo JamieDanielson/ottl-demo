@@ -101,15 +101,20 @@ backup/replay/       the same stages, fed from files by the otlp_json_file recei
   edit `data/make_fixtures.py` to change the story.
 - **Lambdas need a feature gate.** The Collector starts with
   `--feature-gates=ottl.functions.enableLambda`, so `snippets/5-lambda.txt` works if you want to
-  experiment with them. They're alpha.
+  experiment with them. They're alpha, so leave the gate out if you copy the config.
+- **These are teaching configs, not production ones.** A production Collector also needs a
+  `memory_limiter` processor first in each pipeline. The redaction here is a denylist that only
+  scrubs string attribute values, and `user.hash` is an unsalted hash, so it pseudonymizes rather
+  than anonymizes. For allowlists, HMAC hashing and non-string values, see the redaction processor.
 
 ## Learn more
 
 - [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/pkg/ottl) and its
   [function reference](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/ottlfuncs/README.md)
 - The [transform processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor),
-  [filter processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) and
-  [routing connector](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/routingconnector)
+  [filter processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor),
+  [routing connector](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/routingconnector) and
+  [redaction processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/redactionprocessor)
 - [ottl.run](https://ottl.run), the OTTL playground. Try the transform and filter statements there without a Collector.
 
 ## License

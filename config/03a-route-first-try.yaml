@@ -31,10 +31,10 @@ processors:
       - statements:
           # Secrets: match on the KEY name (anchored, so gen_ai.usage.input_tokens survives).
           - 'delete_matching_keys(span.attributes, "(?i).*(authorization|cookie|token|password|secret)$$")'
-          # Keep the user joinable without keeping the address: hash, then delete.
+          # Pseudonymize the user so they stay joinable: hash, then delete.
           - 'set(span.attributes["user.hash"], SHA256(span.attributes["user.email"])) where span.attributes["user.email"] != nil'
           - 'delete_key(span.attributes, "user.email")'
-          # PII inside any string VALUE, whatever the key is called.
+          # PII inside any string attribute VALUE, whatever the key is called.
           - 'replace_all_patterns(span.attributes, "value", "\\b(?:\\d[ -]?){12}(\\d{4})\\b", "**** **** **** $$1")'
           - 'replace_all_patterns(span.attributes, "value", "[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", "<email>")'
           # Keep query parameter names, drop their values.
