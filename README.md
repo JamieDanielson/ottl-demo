@@ -18,6 +18,40 @@ touching the apps:
 
 Each stage includes a mistake we made along the way, so you can see what goes wrong as well as the fix.
 
+## Try it in your browser
+
+The hands-on scenarios from the end of the talk run in [ottl.run](https://ottl.run), so there's
+nothing to install. Each link opens a telescope shop payload and a starter config. The comments at
+the top of the config describe the situation, your goal, a stretch goal, and functions to reach
+for. Replace `[]` with your statements, click Run, and compare the result with the input. If
+you're stuck, set a breakpoint next to a statement to see the data before and after it runs.
+
+| Scenario                        | Starter                               | Solution                                           |
+| ------------------------------- | ------------------------------------- | -------------------------------------------------- |
+| Rename legacy attributes        | [Open](https://is.gd/ottl_scenario_1) | [Solution](https://is.gd/ottl_scenario_1_solution) |
+| Drop health-check spans         | [Open](https://is.gd/ottl_scenario_2) | [Solution](https://is.gd/ottl_scenario_2_solution) |
+| Redact PII and secrets          | [Open](https://is.gd/ottl_scenario_3) | [Solution](https://is.gd/ottl_scenario_3_solution) |
+| Fix high-cardinality span names | [Open](https://is.gd/ottl_scenario_4) | [Solution](https://is.gd/ottl_scenario_4_solution) |
+| Parse messy logs                | [Open](https://is.gd/ottl_scenario_5) | [Solution](https://is.gd/ottl_scenario_5_solution) |
+| Mask emails with lambdas        | [Open](https://is.gd/ottl_scenario_7) | [Solution](https://is.gd/ottl_scenario_7_solution) |
+| Metric identity                 | [Open](https://is.gd/ottl_scenario_8) | [Solution](https://is.gd/ottl_scenario_8_solution) |
+
+### Debugging clinic
+
+Each of these configs looks right and isn't. Read the goal, compare what you expect with what you
+see, then find and fix the bug. Two of them don't even load, and reading the error is part of the
+exercise. The result diff, breakpoints, and switching `error_mode` to `propagate` all help.
+
+| Scenario                     | Starter                                | Solution                                            |
+| ---------------------------- | -------------------------------------- | --------------------------------------------------- |
+| `!=` on a missing attribute  | [Open](https://is.gd/ottl_scenario_6a) | [Solution](https://is.gd/ottl_scenario_6a_solution) |
+| Int vs. string               | [Open](https://is.gd/ottl_scenario_6b) | [Solution](https://is.gd/ottl_scenario_6b_solution) |
+| Unanchored regex             | [Open](https://is.gd/ottl_scenario_6c) | [Solution](https://is.gd/ottl_scenario_6c_solution) |
+| Escaping                     | [Open](https://is.gd/ottl_scenario_6d) | [Solution](https://is.gd/ottl_scenario_6d_solution) |
+| Statement order              | [Open](https://is.gd/ottl_scenario_6e) | [Solution](https://is.gd/ottl_scenario_6e_solution) |
+| Metric vs. datapoint context | [Open](https://is.gd/ottl_scenario_6f) | [Solution](https://is.gd/ottl_scenario_6f_solution) |
+| `error_mode: ignore`         | [Open](https://is.gd/ottl_scenario_6g) | [Solution](https://is.gd/ottl_scenario_6g_solution) |
+
 ## What you need
 
 - Docker with Compose v2
