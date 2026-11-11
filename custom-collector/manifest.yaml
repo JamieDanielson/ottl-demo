@@ -1,0 +1,11 @@
+dist:
+    description: Custom OpenTelemetry Collector
+    name: custom-collector
+    output_path: ./build/collector
+exporters:
+    - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.165.0
+processors:
+    - gomod: github.com/jamiedanielson/ottl-demo/customtransformprocessor v0.0.0
+      path: ./customtransformprocessor
+receivers:
+    - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.165.0

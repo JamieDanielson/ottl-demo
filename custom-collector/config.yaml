@@ -1,0 +1,20 @@
+receivers:
+  host_metrics:
+    scrapers:
+      cpu:
+
+processors:
+  transform:
+    metric_statements:
+    - set(datapoint.attributes["myprivkeypass"], SecurePrivKeyPass(metric.name))
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [host_metrics]
+      processors: [transform]
+      exporters: [debug]
