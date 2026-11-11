@@ -29,11 +29,11 @@ you're stuck, set a breakpoint next to a statement to see the data before and af
 | Scenario                        | Starter                                  | Solution                                           |
 | ------------------------------- | ---------------------------------------- | -------------------------------------------------- |
 | Rename legacy attributes        | [Open](https://is.gd/ottl_scenario_1)    | [Solution](https://is.gd/ottl_scenario_1_solution) |
-| Drop health-check spans         | [Open](https://is.gd/ottl_scenario_2)    | [Solution](https://is.gd/ottl_scenario_2_solution) |
+| Drop health-check spans         | [Open](https://is.gd/ottl_scenario_2_v2) | [Solution](https://is.gd/ottl_scenario_2_solution) |
 | Redact PII and secrets          | [Open](https://is.gd/ottl_scenario_3_v2) | [Solution](https://is.gd/ottl_scenario_3_solution) |
-| Fix high-cardinality span names | [Open](https://is.gd/ottl_scenario_4)    | [Solution](https://is.gd/ottl_scenario_4_solution) |
-| Parse messy logs                | [Open](https://is.gd/ottl_scenario_5)    | [Solution](https://is.gd/ottl_scenario_5_solution) |
-| Mask emails with lambdas        | [Open](https://is.gd/ottl_scenario_7)    | [Solution](https://is.gd/ottl_scenario_7_solution) |
+| Fix high-cardinality span names | [Open](https://is.gd/ottl_scenario_4_v2) | [Solution](https://is.gd/ottl_scenario_4_solution) |
+| Parse messy logs                | [Open](https://is.gd/ottl_scenario_5_v2) | [Solution](https://is.gd/ottl_scenario_5_solution) |
+| Mask emails with lambdas        | [Open](https://is.gd/ottl_scenario_7_v2) | [Solution](https://is.gd/ottl_scenario_7_solution) |
 | Metric identity                 | [Open](https://is.gd/ottl_scenario_8)    | [Solution](https://is.gd/ottl_scenario_8_solution) |
 
 ### Debugging clinic
